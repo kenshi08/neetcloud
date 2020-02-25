@@ -1,0 +1,26 @@
+---
+exportVersion: "1"
+exportId: "8a769e2b6c29e142016c3bd5d6b11111"
+name: "Project Git Repo ABX"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  name: "GitHub CS"
+  type: "com.github.saas"
+  typeId: "com.github"
+  baseUri: "https://api.mgmt.cloud.vmware.com"
+  casToken: ""
+  configABX:
+    path: "abx/Release"
+    branch: "master"
+    repository: "kenshi08/neetcloud"
+    contentType: "ABX_SCRIPTS"
+  projectIds:
+  - "81e5de7e-c49a-4dda-9712-610385cef550"
+  syncEnabled: "true"
+  configureABX: "false"
+timeoutSeconds: 180
+deploymentTimeoutSeconds: 600
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 150

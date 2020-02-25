@@ -1,0 +1,114 @@
+formatVersion: 1
+inputs:
+  platform:
+    type: string
+    enum:
+      - azure
+      - aws
+      - vsphere
+  code:
+    type: string
+    enum:
+      - V2.2
+      - V2.1
+      - V2
+      - V1.9.7
+    default: V2.2
+  wavefront_proxy:
+    title: Proxy Wavefront
+    type: string
+    default: 54.254.230.9
+  wavefront_port:
+    title: Port Wavefront
+    type: string
+    default: 2878
+resources:
+  front_end:
+    type: Cloud.Machine
+    count: 1
+    properties:
+      image: centos7
+      flavor: small
+      remoteAccess:
+        authentication: generatedPublicPrivateKey
+        sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+      networks:
+        - name: '${resource.public_nw.name}'
+          network: '${resource.public_nw.id}'
+          assignment: dynamic
+      cloudConfig: |
+        #cloud-config
+        # log all cloud-init process output (info & errors) to a logfile
+        output: {all: ">> /var/log/cloud-init-output.log"}
+        packages:
+          - git
+        runcmd:
+          - sudo apt-get update
+          - cd /tmp
+          - sudo git clone https://github.com/gnemkiy/testcreds.git
+          - su - ubuntu
+          - eval "$(ssh-agent -s)"
+          - sudo cp /tmp/testcreds/sample/id_rsa /home/ubuntu/.ssh/.
+          - sudo chmod 400 /home/ubuntu/.ssh/id_rsa
+          - eval "$(ssh-agent -s)"
+          - ssh-add -k /home/ubuntu/.ssh/id_rsa
+          - sudo cd /home/ubuntu/.ssh/
+          - ssh -o StrictHostKeyChecking=no -T git@github.com
+          - git clone git@github.com:kenshi08/saasops.git
+          - curl -O https://raw.githubusercontent.com/kenshi08/Tito/master/asset/Scripts/Install_Tito_httpd_LIagent_WavefrontConfig_Tracing.sh
+          - chmod 755 /tmp/saasops/asset/Scripts/Install_Tito_httpd_LIagent_WavefrontConfig_Tracing.sh
+          - /tmp/saasops/asset/Scripts/Install_Tito_httpd_LIagent_WavefrontConfig_Tracing.sh ${input.wavefront_proxy} ${input.wavefront_port} ${input.code} ${resource.DB.networks[0].address}
+          - rm -f /tmp/saasops/asset/Scripts/Install_Tito_httpd_LIagent_WavefrontConfig_Tracing.sh
+  DB:
+    type: Cloud.Machine
+    properties:
+      image: centos7
+      flavor: small
+      networks:
+        - network: '${resource.public_nw.id}'
+          assignment: dynamic
+      remoteAccess:
+        authentication: generatedPublicPrivateKey
+        sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+      cloudConfig: |
+        #cloud-config
+        # log all cloud-init process output (info & errors) to a logfile
+        output: {all: ">> /var/log/cloud-init-output.log"}
+        packages:
+          - mysql
+          - mariadb-server
+          - mariadb
+        runcmd:
+          - exec &> /tmp/tito_db.log
+          - sudo systemctl enable mariadb.service
+          - sudo systemctl start mariadb.service
+          - mysql -v -u root << EOF
+          - USE mysql;
+          - SELECT user,host FROM user;
+          - GRANT ALL PRIVILEGES ON *.* TO root@'%' WITH GRANT OPTION;
+          - EOF
+            #to update the root password
+          - sudo systemctl stop mariadb.service
+          - sudo mysqld_safe --skip-grant-tables &
+          - sleep 5
+          - mysql -v -u root << EOF
+          - UPDATE mysql.user SET Password=PASSWORD('Tito2016') WHERE User='root';
+          - FLUSH PRIVILEGES;
+          - EOF
+          - sudo mysqladmin -u root -pTito2016 shutdown
+          - sudo systemctl start mariadb.service
+          
+            #create conf DB and table
+          - mysql -v -u root -pTito2016 << EOF
+          - create database if not exists TitoDB;
+          - use TitoDB;
+          - CREATE TABLE TitoTable (id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY, home VARCHAR(50) NOT NULL, work VARCHAR(50) NOT NULL, hour_home_departure VARCHAR(50) NOT NULL, hour_work_departure VARCHAR(50) NOT NULL)
+          - EOF
+  public_nw:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'platform:${input.platform}'
+        - tag: 'env:test'
+        - tag: 'function:public'

@@ -1,0 +1,236 @@
+formatVersion: 1
+inputs:
+  application:
+    type: string
+    default: tito
+    readOnly: true
+  environment:
+    type: string
+    description: App Environment
+    default: test
+    enum:
+      - dev
+      - test
+  platform:
+    type: string
+    description: Select target cloud platform
+    enum:
+      - vmc
+      - aws
+      - azure
+      - gcp
+      - vsphere
+  mapsapikey:
+    type: string
+    description: GMAPS API key
+    default: AIzaSyA00LzAkKbZAMtJQnK8gsA6lespU-ymDPA
+    encrypted: true
+  sshkey:
+    type: string
+    description: Instance SSH Key
+    default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+    encrypted: true
+  instance_count:
+    type: integer
+    default: 1
+    minimum: 1
+    maximum: 3
+  wavefront_proxy:
+    type: string
+    title: Wavefront proxy
+    default: 54.254.230.9
+resources:
+  fe-lb:
+    type: Cloud.LoadBalancer
+    properties:
+      name: tito-lb
+      resourceGroupName: '${input.platform == "azure" ? "rg-vmwapj-sddc" : ""}'
+      routes:
+        - instancePort: 80
+          instanceProtocol: HTTP
+          protocol: HTTP
+          port: 80
+      network: '${resource.public_net.name}'
+      instances: '${resource.front-end.id}'
+      internetFacing: true
+  front-end:
+    type: Cloud.Machine
+    dependsOn:
+      - mysql
+    properties:
+      count: '${input.platform == "vmc" ? 1 : input.instance_count}'
+      tags:
+        - key: application
+          value: '${input.application}'
+        - key: environment
+          value: '${input.environment}'
+      resourceGroupName: '${input.platform == "azure" ? "rg-vmwapj-sddc" : ""}'
+      image: ubuntu1604
+      flavor: small
+      remoteAccess:
+        username: ubuntu
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      constraints:
+        - tag: 'platform:${input.platform}'
+      cloudConfigSettings:
+        phoneHomeFailOnTimeout: true
+        phoneHomeShouldWait: true
+        phoneHomeTimeouSeconds: 600
+      cloudConfig: |
+        #cloud-config
+        # log all cloud-init process output (info & errors) to a logfile
+        output: {all: ">> /var/log/cloud-init-output.log"}
+        packages:
+         - git
+        runcmd:
+         - sudo apt install apache2 --assume-yes
+         - sudo git clone https://github.com/gnemkiy/testcreds.git
+         - sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python-pip python-dev --assume-yes
+         - sudo apt install git php libapache2-mod-php php-mysql php-curl --assume-yes
+         - su - ubuntu
+         - eval "$(ssh-agent -s)"
+         - sudo cd /home/ubuntu/.ssh/
+         - sudo cp /testcreds/sample/id_rsa /home/ubuntu/.ssh/.
+         - sudo chmod 400 /home/ubuntu/.ssh/id_rsa
+         - eval "$(ssh-agent -s)"
+         - ssh-add -k /home/ubuntu/.ssh/id_rsa
+         - ssh -o StrictHostKeyChecking=no -T git@github.com
+         - git clone git@github.com:kenshi08/saasops.git
+         - cd /var/www/html
+         - sudo cp -r /saasops/Tito .
+         - sudo chmod +x Tito/asset/Deployment/CloudAssembly/apache/*
+         - sudo cp Tito/asset/Deployment/CloudAssembly/apache/dir.conf /etc/apache2/mods-enabled/dir.conf
+         - sudo printf '\n export TITODBSERVER=${resource.mysql.networks[0].address}' >> Tito/asset/Deployment/CloudAssembly/apache/envvars
+         - sudo printf '\n export TITODBUSERNAME=Tito' >> Tito/asset/Deployment/CloudAssembly/apache/envvars
+         - sudo printf '\n export TITODBPASSWORD=VMware1!' >> Tito/asset/Deployment/CloudAssembly/apache/envvars
+         - sudo printf '\n export MAPSKEY=${input.mapsapikey}' >> Tito/asset/Deployment/CloudAssembly/apache/envvars 
+         - sudo cp Tito/asset/Deployment/CloudAssembly/apache/envvars /etc/apache2/envvars
+         - echo ${resource.mysql.id}
+         - echo ${resource.mysql.networks[0].address}
+         - sudo systemctl restart apache2
+         # Wavefront config
+         - 'sudo bash -c "$(curl -sL https://wavefront.com/install)" -- install --agent --proxy-address ${input.wavefront_proxy} --proxy-port 2878'
+         - [bash, /etc/telegraf/appendTags.sh]
+         - sudo systemctl restart telegraf        
+        write_files:
+         - path: /etc/telegraf/telegraf.d/apache.conf
+           permissions: '0644'
+           content: |
+            [[inputs.apache]]
+            urls = ["http://0.0.0.0/server-status?auto"]
+         - path: /etc/telegraf/appendTags.sh
+           permissions: '0644'
+           content: |
+            #!/bin/sh
+            sed '/\[global_tags\]/r'<(
+            echo 'app="${input.application}"'
+            echo 'environment="${input.platform}"'
+            ) -i -- /etc/telegraf/telegraf.conf   
+      name: FE
+      networks:
+        - name: '${resource.public_net.name}'
+          network: '${resource.public_net.id}'
+          assignPublicIpAddress: true
+  mysql:
+    type: Cloud.Machine
+    properties:
+      name: mysql
+      image: ubuntu1604
+      flavor: small
+      tags:
+        - key: application
+          value: '${input.application}'
+        - key: environment
+          value: '${input.environment}'
+      resourceGroupName: '${input.platform == "azure" ? "rg-vmwapj-sddc" : ""}'
+      remoteAccess:
+        username: ubuntu
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      constraints:
+        - tag: 'platform:${input.platform}'
+      cloudConfig: |
+        #cloud-config
+        # log all cloud-init process output (info & errors) to a logfile
+        output: {all: ">> /var/log/cloud-init-output.log"}
+        runcmd:
+        - sudo apt-get update
+        - sudo git clone https://github.com/gnemkiy/testcreds.git
+        - sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python-pip python-dev --assume-yes
+        - echo "mysql-server mysql-server/root_password password Tito2016" | sudo debconf-set-selections
+        - echo "mysql-server mysql-server/root_password_again password Tito2016" | sudo debconf-set-selections
+        - sudo apt-get -y install mysql-server
+        - sudo apt-get install git unzip --assume-yes
+        - su - ubuntu
+        - eval "$(ssh-agent -s)"
+        - sudo cp /testcreds/sample/id_rsa /home/ubuntu/.ssh/.
+        - sudo chmod 400 /home/ubuntu/.ssh/id_rsa
+        - eval "$(ssh-agent -s)"
+        - ssh-add -k /home/ubuntu/.ssh/id_rsa
+        - sudo cd /home/ubuntu/.ssh/
+        - ssh -o StrictHostKeyChecking=no -T git@github.com
+        - git clone git@github.com:kenshi08/saasops.git
+        - sudo cp -r /saasops/Tito /.
+        - sudo cp /Tito/asset/Deployment/CloudAssembly/titodb/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
+        - sudo systemctl restart mysql.service
+        - cd /Tito/asset/Deployment/CloudAssembly/titodb/
+        - sudo chmod 777 *
+        - sudo chmod +x *
+        - export MYSQL_ROOT_PASSWORD=Tito2016
+        - sudo mysql --user=root --password=$MYSQL_ROOT_PASSWORD < create-tito-db.sql
+        #wavefront
+        - 'sudo bash -c "$(curl -sL https://wavefront.com/install)" -- install --agent --proxy-address ${input.wavefront_proxy} --proxy-port 2878'
+        - sed -i 's|127.0.0.1|'$HOSTNAME'|g' /etc/telegraf/telegraf.d/mysql.conf
+        - sudo systemctl restart telegraf
+        - [bash, /etc/telegraf/appendTags.sh]
+        write_files:
+        - path: /etc/telegraf/telegraf.d/mysql.conf
+          permissions: '0644'
+          content: |
+           [[inputs.mysql]]
+            servers = ["root:Tito2016@tcp(127.0.0.1:3306)/"]
+            gather_table_schema = true
+            gather_process_list = true
+            gather_user_statistics = true
+            gather_info_schema_auto_inc = true
+            gather_innodb_metrics = true
+            gather_slave_status = true
+            gather_binary_logs = false
+            gather_table_io_waits = true
+            gather_table_lock_waits = true
+            gather_index_io_waits = true
+            gather_event_waits = true
+            gather_file_events_stats = true
+            gather_perf_events_statements = true
+            interval_slow = "30m"
+            table_schema_databases = []
+           [[outputs.file]]
+            files = ["stdout"]
+        - path: /etc/telegraf/appendTags.sh
+          permissions: '0644'
+          content: |
+            #!/bin/sh
+            sed '/\[global_tags\]/r'<(
+            echo 'app="${input.application}"'
+            echo 'environment="${input.environment}"'
+            ) -i -- /etc/telegraf/telegraf.conf
+      networks:
+        - name: '${private_net.name}'
+          network: '${resource.private_net.id}'
+  public_net:
+    type: Cloud.Network
+    properties:
+      name: public_network
+      networkType: existing
+      constraints:
+        - tag: 'function:public'
+        - tag: 'env:${input.environment}'
+  private_net:
+    type: Cloud.Network
+    properties:
+      name: private_network
+      networkType: existing
+      constraints:
+        - tag: 'function:private'
+        - tag: 'env:${input.environment}'

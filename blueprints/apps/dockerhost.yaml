@@ -1,0 +1,84 @@
+formatVersion: 1
+inputs:
+  application:
+    type: string
+    default: tito
+    readOnly: true
+  environment:
+    type: string
+    description: App Environment
+    default: test
+    enum:
+      - dev
+      - test
+  cloud_target:
+    type: string
+    description: Select target cloud
+    enum:
+      - 'platform:aws'
+      - 'platform:azure'
+      - 'platform:gcp'
+      - 'platform:vsphere'
+  azureresourcegrp:
+    type: string
+    description: Azure Resource Group
+    default: ''
+    enum:
+      - ''
+      - operationsaas
+      - planes
+      - test
+  sshkey:
+    type: string
+    description: VM SSH Key
+    default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+    encrypted: true
+resources:
+  mgmt_net:
+    type: Cloud.Network
+    properties:
+      name: PublicCloudNetwork
+      networkType: existing
+      constraints:
+        - tag: 'function:mgmt'
+        - tag: 'env:${input.environment}'
+  docker:
+    type: Cloud.Machine
+    properties:
+      name: dockerhost
+      image: ubuntu1604
+      flavor: medium
+      remoteAccess:
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      resourceGroupName: '${input.azureresourcegrp}'
+      constraints:
+        - tag: '${input.cloud_target}'
+      cloudConfig: |
+        #cloud-config
+        repo_update: true
+        repo_upgrade: all
+        packages:
+        - git
+        users:
+          - name: dockeradmin
+            ssh-authorized-keys:
+            - ${input.sshkey}
+            sudo: ['ALL=(ALL) NOPASSWD:ALL']
+            groups: sudo
+            shell: /bin/bash
+        runcmd:
+          - sed -i -e '$aAllowUsers dockeradmin' /etc/ssh/sshd_config
+          - service ssh reload
+          - curl -fsSL https://get.docker.com -o get-docker.sh; sh get-docker.sh
+          - systemctl daemon-reload
+          - systemctl restart docker
+        write_files:
+          - path: /etc/systemd/system/docker.service.d/override.conf
+            permissions: '0644'
+            content: |
+             [Service]
+             ExecStart=
+             ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375
+      networks:
+        - network: '${resource.mgmt_net.id}'

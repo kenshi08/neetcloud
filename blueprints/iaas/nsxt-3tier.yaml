@@ -1,0 +1,71 @@
+formatVersion: 1
+inputs: {}
+resources:
+  external-net:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'function:lab'
+  web-lb:
+    type: Cloud.LoadBalancer
+    properties:
+      routes:
+        - instancePort: 80
+          protocol: HTTP
+          instanceProtocol: HTTP
+          port: 80
+      network: '${resource["external-net"].id}'
+      instances: '${resource.websvr[*].id}'
+      internetFacing: false
+  websvr:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu
+      flavor: small
+      count: 1
+      name: websvr
+      constraints:
+        - tag: 'env:test'
+        - tag: 'platform:vsphere'
+      networks:
+        - network: '${resource["web-net"].id}'
+  appsvr:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu
+      flavor: small
+      count: 1
+      constraints:
+        - tag: 'platform:vsphere'
+        - tag: 'env:test'
+      networks:
+        - network: '${resource["app-net"].id}'
+  dbsvr:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu
+      flavor: small
+      constraints:
+        - tag: 'platform:vsphere'
+        - tag: 'env:test'
+      networks:
+        - network: '${resource["db-net"].id}'
+  web-net:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'function:web'
+  app-net:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'function:app'
+  db-net:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'function:db'

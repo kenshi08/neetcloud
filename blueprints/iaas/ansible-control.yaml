@@ -1,0 +1,62 @@
+formatVersion: 1
+inputs:
+  sshkey:
+    type: string
+    description: Instance SSH Key
+    default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+    encrypted: true
+  platform:
+    type: string
+    description: Platform to be deployed
+    title: Platform
+    default: aws
+    enum:
+      - aws
+      - azure
+      - vsphere
+  environment:
+    type: string
+    description: Environment
+    default: test
+    enum:
+      - dev
+      - test
+resources:
+  ansible-control:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu1604
+      flavor: small
+      remoteAccess:
+        username: ubuntu
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      networks:
+        - network: '${resource["ansible-net"].id}'
+      constraints:
+        - tag: 'platform:${input.platform}'
+      cloudConfig: |
+        #cloudconfig
+        runcmd:
+        - sudo sed -e 's/.*PasswordAuthentication no.*/PasswordAuthentication yes/' -i /etc/ssh/sshd_config
+        - sudo sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin yes/' /etc/ssh/sshd_config
+        - sudo service sshd restart
+        - apt-add-repository ppa:ansible/ansible --yes
+        - apt-get update
+        - apt-get install ansible --yes
+        - sudo sed -e 's/.*host_key_checking = False.*/host_key_checking = False/' -i /etc/ansible/ansible.cfg
+        - sudo chmod 777 /etc/ansible/
+        - sudo chmod 777 /etc/ansible/hosts
+        - sudo sed -e 's/.*valut_password_file.*/vault_password_file=vault_pass.txt/' -i /etc/ansible/ansible.cfg
+        - sudo touch /etc/ansible/vault_pass.txt
+        - sudo echo 'VMware1! > /etc/ansible/vault_pass.txt
+        - sudo ufw default allow incoming
+        - sudo ufw default allow outgoing
+  ansible-net:
+    type: Cloud.Network
+    properties:
+      name: ansible-net
+      networkType: existing
+      constraints:
+        - tag: 'function:public'
+        - tag: 'env:${input.environment}'

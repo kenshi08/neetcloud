@@ -1,0 +1,17 @@
+---
+exportVersion: "1"
+exportId: "8a769f1c6c4790b0016c50d0873f0c31"
+name: "Assign Project"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  match: "neetcloud"
+  baseUri: "https://api.mgmt.cloud.vmware.com"
+  casToken: ""
+  invitedUsers:
+  - "kenshi08@gmail.com"
+timeoutSeconds: 180
+deploymentTimeoutSeconds: 600
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 150

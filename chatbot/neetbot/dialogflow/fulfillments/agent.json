@@ -1,0 +1,71 @@
+{
+  "description": "NEETCloud Assistant Bot",
+  "language": "en",
+  "shortDescription": "",
+  "examples": "",
+  "linkToDocs": "",
+  "activeAssistantAgents": [
+    "smalltalk-domain-on"
+  ],
+  "disableInteractionLogs": false,
+  "disableStackdriverLogs": true,
+  "googleAssistant": {
+    "googleAssistantCompatible": true,
+    "project": "neetcloudbot",
+    "welcomeIntentSignInRequired": false,
+    "startIntents": [
+      {
+        "intentId": "78de57e5-25ab-493c-a0b7-55cba04ff0a2",
+        "signInRequired": false
+      },
+      {
+        "intentId": "0e67cc20-732b-453b-b936-969aaa3270e6",
+        "signInRequired": false
+      }
+    ],
+    "systemIntents": [],
+    "endIntentIds": [
+      "0e67cc20-732b-453b-b936-969aaa3270e6",
+      "78de57e5-25ab-493c-a0b7-55cba04ff0a2"
+    ],
+    "oAuthLinking": {
+      "required": false,
+      "providerId": "",
+      "authorizationUrl": "",
+      "tokenUrl": "",
+      "scopes": "",
+      "privacyPolicyUrl": "",
+      "grantType": "AUTH_CODE_GRANT"
+    },
+    "voiceType": "MALE_1",
+    "capabilities": [],
+    "env": "",
+    "protocolVersion": "V2",
+    "autoPreviewEnabled": true,
+    "isDeviceAgent": false
+  },
+  "defaultTimezone": "Asia/Hong_Kong",
+  "webhook": {
+    "url": "https://us-central1-neetcloudbot.cloudfunctions.net/dialogflowFirebaseFulfillment",
+    "username": "",
+    "headers": {
+      "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ2bXdhcmUuY29tOmQ2ODk5YTgyLWFkNDItNDFjNy05MTEzLTlkNTNkZmRmNjBiOCIsImF6cCI6ImNzcF9wcmRfZ2F6X2ludGVybmFsX2NsaWVudF9pZCIsImRvbWFpbiI6InZtd2FyZS5jb20iLCJjb250ZXh0IjoiMjJhMTAwMmItYjlkMi00ZjMwLWIxODUtODI4ZjkxNWU3YmYyIiwiaXNzIjoiaHR0cHM6Ly9nYXouY3NwLXZpZG0tcHJvZC5jb20iLCJwZXJtcyI6WyJleHRlcm5hbC83Y0oybmdTX2hSQ1lfYkliV3VjTTRLV1F3T29fL2xvZy1pbnRlbGxpZ2VuY2U6dXNlciIsImV4dGVybmFsL1l3LUh5QmVRempDWGtMMndRU2VHd2F1Si1tQV8vY2F0YWxvZzp1c2VyIiwiY3NwOm9yZ19tZW1iZXIiLCJleHRlcm5hbC91bHZxdE40MTQxYmVDVDJvT25iai13bGt6R2dfL0NvZGVTdHJlYW06YWRtaW5pc3RyYXRvciIsImV4dGVybmFsL28zZWNic0F2anB3NmxtTDNhbGlKWDI5elZoRV8vY2FzY2FkZTpzZXJ2aWNlLWFkbWluIiwiZXh0ZXJuYWwvdWx2cXRONDE0MWJlQ1Qyb09uYmotd2xrekdnXy9Db2RlU3RyZWFtOnZpZXdlciIsImV4dGVybmFsL28zZWNic0F2anB3NmxtTDNhbGlKWDI5elZoRV8vdmtlOnNlcnZpY2UtYWRtaW4iLCJleHRlcm5hbC9aeTkyNG1FM2R3bjJBU3lWWlIwTm43bHVwZUFfL2F1dG9tYXRpb25zZXJ2aWNlOnVzZXIiLCJleHRlcm5hbC85cWpvTmFmRHA5WGt5eVFMY0xDS1dQc0FpcjBfL3Zybmk6dXNlciIsImV4dGVybmFsL1p5OTI0bUUzZHduMkFTeVZaUjBObjdsdXBlQV8vYXV0b21hdGlvbnNlcnZpY2U6Y2xvdWRfYWRtaW4iLCJleHRlcm5hbC85cWpvTmFmRHA5WGt5eVFMY0xDS1dQc0FpcjBfL3Zybmk6YWRtaW4iLCJleHRlcm5hbC83Y0oybmdTX2hSQ1lfYkliV3VjTTRLV1F3T29fL2xvZy1pbnRlbGxpZ2VuY2U6YWRtaW4iLCJleHRlcm5hbC9aeTkyNG1FM2R3bjJBU3lWWlIwTm43bHVwZUFfL2F1dG9tYXRpb25zZXJ2aWNlOm1hbmFnZXIiLCJleHRlcm5hbC9Zdy1IeUJlUXpqQ1hrTDJ3UVNlR3dhdUotbUFfL2NhdGFsb2c6YWRtaW4iLCJleHRlcm5hbC91bHZxdE40MTQxYmVDVDJvT25iai13bGt6R2dfL0NvZGVTdHJlYW06ZGV2ZWxvcGVyIiwiZXh0ZXJuYWwvbEdvbnJfbG5CSHl3cUtQbjMyUThVZjIybmpZXy9kaXNjb3Zlcnk6dXNlciJdLCJjb250ZXh0X25hbWUiOiJhNzBhY2RmZC02MDUwLTRmMmEtYWJhYS04ZDlhNTY3Y2E0OTEiLCJleHAiOjE1NDAyODU5MzMsImlhdCI6MTU0MDI4NDEzMywianRpIjoiMTk3NzVhNWItZWJmOS00MGM0LTgwYTktNjJiZWMwNDQ3MGU3IiwidXNlcm5hbWUiOiJjbGVtZW50d29uZyJ9.WfsIcyFiP4TvbD-MRlcY17ncQCdnZpCMbgcn9S1F2ik7WnMrvWND6wUyP3JM_ObxS_Tam6xVbTTxi58cl6TCJgjCZRYHI6OG4285igePdnCmqbct-B8Kv2AdK-_2NpLpYb7wgRP9Xzz72IK09SVL96XcdOlm4kjpYyT6SpbNV9RwAzPDB7PJmVkqLOz3l74jGJZ3SOuYJgmt-Y6mDUC8ot4hBm7RJJd6HVYyoWlu09_JZ4Yek6KxAIEoWkN5Tn2gOER3RHN_5dXcHWYgJqBiaVdIksh-lPVzbvvOWp8YhXcNysfGMNFk7w2kxtQ3kAH77Gywa-vvlLk_uL6jgMsm3w",
+      "Accept": "application/json, text/plain, */*",
+      "Content-Type": "application/json"
+    },
+    "available": true,
+    "useForDomains": false,
+    "cloudFunctionsEnabled": true,
+    "cloudFunctionsInitialized": true
+  },
+  "isPrivate": true,
+  "customClassifierMode": "use.after",
+  "mlMinConfidence": 0.3,
+  "supportedLanguages": [],
+  "onePlatformApiVersion": "v2",
+  "analyzeQueryTextSentiment": false,
+  "enabledKnowledgeBaseNames": [],
+  "knowledgeServiceConfidenceAdjustment": -0.4,
+  "dialogBuilderMode": false,
+  "baseActionPackagesUrl": ""
+}

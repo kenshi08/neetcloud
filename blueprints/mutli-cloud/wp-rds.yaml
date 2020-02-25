@@ -1,0 +1,127 @@
+inputs:
+  webtiersize:
+    type: string
+    enum:
+      - small
+      - medium
+      - large
+    default: small
+    title: Web Tier Size
+    description: Choose a size for your web tier
+  webtierimage:
+    type: string
+    enum:
+      - ubuntu
+      - centos
+    default: ubuntu
+    title: Web Tier Image
+    description: Choose an image for your web tier
+  clusternodecount:
+    type: integer
+    default: 1
+    title: RDS Cluster Nodes
+    description: Number of Nodes for RDS Cluster
+  rdsinstanceclass:
+    type: string
+    default: db.t2.small
+    title: RDS Instance Class
+    description: Enter the desired RDS Instance Class
+  dbname:
+    type: string
+    default: wordpress_blog
+    title: Database Name
+    description: Enter Database Name
+  dbusername:
+    type: string
+    default: root
+    title: Database Username
+    description: Enter DB Username
+  dbpassword:
+    type: string
+    encrypted: true
+    title: Database Password
+    description: Enter Datbase Password
+  finalsnapshot:
+    type: string
+    enum:
+      - 'true'
+      - 'false'
+    default: 'true'
+    title: Skip Final RDS Snapshot
+    description: Set to true to skip final snapshot
+  clusterprefix:
+    type: string
+    default: cluster
+    title: Cluster Name Prefix
+    description: RDS Cluster Name Prefix
+  instanceprefix:
+    type: string
+    default: instance
+    title: Instance Name Prefix
+    description: RDS Instance Name Prefix
+resources:
+  RDS_Cluster_1:
+    type: Cloud.Service.AWS.RDS.Cluster
+    dependsOn:
+      - Cloud_Network_1
+    properties:
+      region: ap-southeast-1
+      account: clement-aws
+      database_name: '${input.dbname}'
+      master_username: '${input.dbusername}'
+      master_password: '${input.dbpassword}'
+      skip_final_snapshot: '${input.finalsnapshot}'
+      cluster_identifier_prefix: '${input.clusterprefix}'
+      availability_zones:
+        - ap-southeast-1a
+        - ap-southeast-1c
+  Cloud_Network_1:
+    type: Cloud.Network
+    properties:
+      name: rds_network
+      networkType: existing
+  RDS_DB_1:
+    type: Cloud.Service.AWS.RDS.Cluster.Instance
+    dependsOn:
+      - Cloud_Network_1
+    properties:
+      multi_az: true
+      account: clement-aws
+      region: ap-southeast-1
+      allocated_storage: 20
+      count: '${input.clusternodecount}'
+      cluster_identifier: '${resource.RDS_Cluster_1.id}'
+      instance_class: '${input.rdsinstanceclass}'
+      identifier_prefix: '${input.instanceprefix}'
+  Cloud_Machine_1:
+    type: Cloud.Machine
+    dependsOn:
+      - RDS_DB_1
+    properties:
+      name: wp-01
+      image: '${input.webtierimage}'
+      flavor: '${input.webtiersize}'
+      networks:
+        - name: '${resource.Cloud_Network_1.name}'
+      remoteAccess:
+        authentication: generatedPublicPrivateKey
+      cloudConfig: |
+        #cloud-config
+        repo_update: true
+        repo_upgrade: all
+
+        packages:
+         - apache2
+         - php
+         - php-mysql
+         - libapache2-mod-php
+         - php-mcrypt
+         - mysql-client
+
+        runcmd:
+         - mkdir -p /var/www/html/mywordpresssite && cd /var/www/html && wget https://wordpress.org/latest.tar.gz && tar -xzf /var/www/html/latest.tar.gz -C /var/www/html/mywordpresssite --strip-components 1
+         - i=0; while [ $i -le 5 ]; do mysql --connect-timeout=3 -h ${RDS_Cluster_1.endpoint} -u ${input.dbusername} -p${input.dbpassword} -e "SHOW STATUS;" && break || sleep 15; i=$((i+1)); done
+         - mysql -u ${input.dbusername} -p${input.dbpassword} -h ${RDS_Cluster_1.endpoint} -e "create database ${input.dbname};"
+         - mv /var/www/html/mywordpresssite/wp-config-sample.php /var/www/html/mywordpresssite/wp-config.php
+         - sed -i -e s/"define('DB_NAME', 'database_name_here');"/"define('DB_NAME', '${input.dbname}');"/ /var/www/html/mywordpresssite/wp-config.php && sed -i -e s/"define('DB_USER', 'username_here');"/"define('DB_USER', '${input.dbusername}');"/ /var/www/html/mywordpresssite/wp-config.php && sed -i -e s/"define('DB_PASSWORD', 'password_here');"/"define('DB_PASSWORD', '${input.dbpassword}');"/ /var/www/html/mywordpresssite/wp-config.php && sed -i -e s/"define('DB_HOST', 'localhost');"/"define('DB_HOST', '${RDS_Cluster_1.endpoint}');"/ /var/www/html/mywordpresssite/wp-config.php
+         - service apache2 reload

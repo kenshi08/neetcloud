@@ -1,0 +1,60 @@
+formatVersion: 1
+inputs:
+  account:
+    type: string
+    default: neetcloud-azure
+    enum:
+      - neetcloud-azure
+  region:
+    type: string
+    default: Southeast Asia
+    enum:
+      - Australia East
+      - Southeast Asia
+  db_user:
+    type: string
+    default: dbadmin
+  db_password:
+    type: string
+    minLength: 8
+    maxLength: 32
+  sql_server_name:
+    type: string
+    pattern: '[a-z]'
+resources:
+  resource_group:
+    type: Cloud.Azure.ResourceGroup
+    properties:
+      name: neetcloud-resource-grp
+      useExisting: false
+  sql_db:
+    type: Cloud.Service.Azure.SQL.Database
+    properties:
+      name: sqldb-neetcloud-01
+      region: '${input.region}'
+      account: neetcloud-azure
+      server_name: '${resource.sql_server.name}'
+      resource_group_name: '${resource.resource_group.resourceName}'
+  sql_server:
+    type: Cloud.Service.Azure.SQL.Server
+    properties:
+      name: '${input.sql_server_name}'
+      region: '${input.region}'
+      account: neetcloud-azure
+      version: '12.0'
+      administrator_login: '${input.db_user}'
+      resource_group_name: '${resource.resource_group.resourceName}'
+      administrator_login_password: '${input.db_password}'
+  vm46:
+    type: Cloud.Azure.Machine
+    properties:
+      image: ubuntu
+      flavor: small
+      resourceGroupName: '${resource.resource_group.resourceName}'
+      networks:
+        - network: '${resource.network.id}'
+  network:
+    type: Cloud.Network
+    properties:
+      name: net1
+      networkType: existing

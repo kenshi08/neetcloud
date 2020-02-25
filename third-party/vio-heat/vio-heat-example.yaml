@@ -1,0 +1,126 @@
+heat_template_version: 2013-05-23
+
+description: |
+ Test Sample for the 2Web_1lnet
+parameters:
+  external_network_id:
+    type: string
+    label: ext-net
+    description: UUID of a Neutron external network
+    default: 964b4aca-c084-4f95-91cb-689625f40220
+
+  web_image:
+    type: string
+    description: Name of image to use for servers
+    default: ubuntu-16.04-server-cloudimg-amd64
+
+  key_pair:
+    type: string
+    description: SSH Key Pair
+    default: default-key
+
+resources:
+  # Create the web logical switch and configure DHCP.
+  web_network_01:
+    type: OS::Neutron::Net
+    properties:
+      admin_state_up: true
+      name: web-net
+
+  web_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: web-subnet
+      cidr: 192.168.10.0/24
+      dns_nameservers: [192.168.110.10]
+      enable_dhcp: true
+      gateway_ip: 192.168.10.1
+      network_id: { get_resource: web_network_01 }
+
+  # Create the router, add internal db interface, and add router uplink
+
+  app_router_01:
+    type: OS::Neutron::Router
+    properties:
+      admin_state_up: true
+      name: app-router-01
+      value_specs: {router_type: exclusive}
+      external_gateway_info: { "network": { get_param: external_network_id }}
+
+  app_router_int0:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: app_router_01 }
+      subnet_id: { get_resource: web_subnet }
+
+# Create the workload security group
+
+  web_security_group:
+     type: OS::Neutron::SecurityGroup
+     properties:
+       description: Allow web traffic from anywhere
+       name: web-security-group
+       rules:
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+
+  # Create port(s) on web logical network.
+  web-svr-01_port0:
+    type: OS::Neutron::Port
+    properties:
+      admin_state_up: true
+      network_id: { get_resource: web_network_01 }
+      security_groups:
+        - { get_resource: web_security_group }
+  web-svr-01_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: {get_param: external_network_id}
+      port_id: { get_resource: web-svr-01_port0 }
+
+  web-svr-02_port0:
+    type: OS::Neutron::Port
+    properties:
+      admin_state_up: true
+      network_id: { get_resource: web_network_01 }
+      security_groups:
+        - { get_resource: web_security_group }
+  web-svr-02_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: {get_param: external_network_id}
+      port_id: { get_resource: web-svr-02_port0 }
+
+  #Provision instances
+  web-svr-01:
+    type: OS::Nova::Server
+    properties:
+      name: web-svr-01
+      image: { get_param: web_image }
+      flavor: m1.small
+      networks:
+        - port: { get_resource: web-svr-01_port0 }
+      user_data_format: RAW
+      user_data: |
+            #!/bin/bash
+            echo This is Web Server-01 >> file.txt
+            python -m SimpleHTTPServer 80
+  web-svr-02:
+    type: OS::Nova::Server
+    properties:
+      name: web-svr-02
+      image: { get_param: web_image }
+      flavor: m1.small
+      networks:
+        - port: { get_resource: web-svr-02_port0 }
+      user_data_format: RAW
+      user_data: |
+            #!/bin/bash
+            echo This is Web Server-02 >> file.txt
+            python -m SimpleHTTPServer 80

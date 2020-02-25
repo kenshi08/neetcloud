@@ -1,0 +1,18 @@
+[
+  {
+    "value": "dev",
+    "synonyms": [
+      "Development",
+      "dev",
+      "development"
+    ]
+  },
+  {
+    "value": "production",
+    "synonyms": [
+      "Production",
+      "prod",
+      "production"
+    ]
+  }
+]

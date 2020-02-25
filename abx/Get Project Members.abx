@@ -1,0 +1,14 @@
+---
+exportVersion: "1"
+exportId: "8a76941c6c29e137016c3c8f4e401245"
+name: "Get Project Members"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  baseUri: "https://api.mgmt.cloud.vmware.com"
+  casToken: ""
+timeoutSeconds: 180
+deploymentTimeoutSeconds: 600
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 150

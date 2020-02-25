@@ -1,0 +1,73 @@
+name: "blueprint-2"
+iteration: 2
+description: "simple wordpress app without load balancer and external storage in addition to the root disk"
+resources:                         
+  mysql: 
+    type: Cloud.Machine
+    properties:
+      name: mysql-compute 
+      image: ubuntu.clement
+      flavor: t2.small.clement
+      constraints:
+        - tag: 'env:dev'
+      networks: 
+        - name: "${wpnet.name}"
+      cloudConfig: |
+          #cloud-config
+          repo_update: true
+          repo_upgrade: all
+          
+          packages:
+           - mysql-server
+          
+          runcmd:
+           - sed -e '/bind-address/ s/^#*/#/' -i /etc/mysql/mysql.conf.d/mysqld.cnf
+           - service mysql restart
+           - mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'mysqlpassword';"
+           - mysql -e "FLUSH PRIVILEGES;"
+  
+  wpnet:
+    type: Cloud.Network
+    properties:
+      name: wpnet
+      networkType: public
+      outboundAccess: true
+      constraints:
+        - tag: 'type:public-net'
+        - tag: 'env:dev'
+  wordpress: 
+    type: Cloud.Machine
+    properties:
+      name: wordpress 
+      image: ubuntu.clement
+      flavor: t2.small.clement
+      networks: 
+        - name: "${wpnet.name}"
+      cloudConfig: |
+          #cloud-config
+          repo_update: true
+          repo_upgrade: all
+          
+          packages:
+           - apache2
+           - php
+           - php-mysql
+           - libapache2-mod-php
+           - php-mcrypt
+           - mysql-client
+          
+          runcmd:
+           - mkdir -p /var/www/html/mywordpresssite && cd /var/www/html && wget https://wordpress.org/latest.tar.gz && tar -xzf /var/www/html/latest.tar.gz -C /var/www/html/mywordpresssite --strip-components 1
+           - i=0; while [ $i -le 5 ]; do mysql --connect-timeout=3 -h ${mysql.networks[0].address} -u root -pmysqlpassword -e "SHOW STATUS;" && break || sleep 15; i=$((i+1)); done
+           - mysql -u root -pmysqlpassword -h ${mysql.networks[0].address} -e "create database wordpress_blog;"
+           - mv /var/www/html/mywordpresssite/wp-config-sample.php /var/www/html/mywordpresssite/wp-config.php
+           - sed -i -e s/"define('DB_NAME', 'database_name_here');"/"define('DB_NAME', 'wordpress_blog');"/ /var/www/html/mywordpresssite/wp-config.php && sed -i -e s/"define('DB_USER', 'username_here');"/"define('DB_USER', 'root');"/ /var/www/html/mywordpresssite/wp-config.php && sed -i -e s/"define('DB_PASSWORD', 'password_here');"/"define('DB_PASSWORD', 'mysqlpassword');"/ /var/www/html/mywordpresssite/wp-config.php && sed -i -e s/"define('DB_HOST', 'localhost');"/"define('DB_HOST', '${mysql.networks[0].address}');"/ /var/www/html/mywordpresssite/wp-config.php
+           - service apache2 reload
+      storage: 
+        disks: 
+            - name: "Wordpress Log Disk"
+              capacityGb: 10
+              encrypted: false
+              constraints:
+                - tag: 'gold'
+                - tag: 'env:dev'

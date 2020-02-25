@@ -1,0 +1,121 @@
+{
+  "id": "0e67cc20-732b-453b-b936-969aaa3270e6",
+  "name": "neetcloud.app.create",
+  "auto": true,
+  "contexts": [],
+  "responses": [
+    {
+      "resetContexts": false,
+      "affectedContexts": [],
+      "parameters": [
+        {
+          "id": "a19e2f65-fde6-46ba-bc58-018186178ec1",
+          "required": true,
+          "dataType": "@os",
+          "name": "os",
+          "value": "$os",
+          "prompts": [
+            {
+              "lang": "en",
+              "value": "What operating system would you like?"
+            }
+          ],
+          "promptMessages": [],
+          "noMatchPromptMessages": [],
+          "noInputPromptMessages": [],
+          "isList": false
+        },
+        {
+          "id": "d88851c4-475d-43df-8962-9b09449d2094",
+          "required": true,
+          "dataType": "@platform",
+          "name": "platform",
+          "value": "$platform",
+          "prompts": [
+            {
+              "lang": "en",
+              "value": "What platform would you like your server to be deployed?"
+            },
+            {
+              "lang": "en",
+              "value": "Where would you like your server to be hosted?"
+            },
+            {
+              "lang": "en",
+              "value": "Where should I deploy your server?"
+            }
+          ],
+          "promptMessages": [],
+          "noMatchPromptMessages": [],
+          "noInputPromptMessages": [],
+          "isList": false
+        },
+        {
+          "id": "5a3bc06c-5729-4096-949b-f002245119bd",
+          "required": true,
+          "dataType": "@size",
+          "name": "size",
+          "value": "$size",
+          "prompts": [
+            {
+              "lang": "en",
+              "value": "What kind of server size would you like?"
+            }
+          ],
+          "promptMessages": [],
+          "noMatchPromptMessages": [],
+          "noInputPromptMessages": [],
+          "isList": false
+        },
+        {
+          "id": "64ed2cb7-e158-4908-b63f-7e66fda64cf6",
+          "required": true,
+          "dataType": "@sys.any",
+          "name": "name",
+          "value": "$name",
+          "prompts": [
+            {
+              "lang": "en",
+              "value": "How would you like to call your app?"
+            },
+            {
+              "lang": "en",
+              "value": "What would you like your app to be called?"
+            }
+          ],
+          "promptMessages": [],
+          "noMatchPromptMessages": [],
+          "noInputPromptMessages": [],
+          "isList": false
+        }
+      ],
+      "messages": [
+        {
+          "type": "simple_response",
+          "platform": "google",
+          "lang": "en",
+          "textToSpeech": "Okie! Your application $name will be deployed in a $size $os server on $platform . Please use Slack to track your progress.",
+          "ssml": "",
+          "displayText": "Okie! Your application $name will be deployed in a $size $os server on $platform . Please use Slack to track your progress."
+        },
+        {
+          "type": 0,
+          "lang": "en",
+          "speech": [
+            "Okie! You wanted a $size $os on $platform ! And it will be named $name . Is this correct?",
+            "Awesome! Just to confirm that you are ordering a $size $os server on $platform with a name $name . Is that correct?"
+          ]
+        }
+      ],
+      "defaultResponsePlatforms": {
+        "slack": true
+      },
+      "speech": []
+    }
+  ],
+  "priority": 500000,
+  "webhookUsed": true,
+  "webhookForSlotFilling": false,
+  "fallbackIntent": false,
+  "events": []
+}

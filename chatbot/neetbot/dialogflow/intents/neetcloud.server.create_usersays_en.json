@@ -1,0 +1,206 @@
+[
+  {
+    "id": "4634022d-9fc3-4717-8b73-d7a9939f05ba",
+    "data": [
+      {
+        "text": "Can I get a ",
+        "userDefined": false
+      },
+      {
+        "text": "Windows",
+        "alias": "os",
+        "meta": "@os",
+        "userDefined": false
+      },
+      {
+        "text": " server deployed on ",
+        "userDefined": false
+      },
+      {
+        "text": "VMware",
+        "alias": "platform",
+        "meta": "@platform",
+        "userDefined": false
+      },
+      {
+        "text": "?",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  },
+  {
+    "id": "5a0e4024-9401-4f52-885e-c8dcd226e781",
+    "data": [
+      {
+        "text": "I want a ",
+        "userDefined": false
+      },
+      {
+        "text": "small",
+        "alias": "size",
+        "meta": "@size",
+        "userDefined": false
+      },
+      {
+        "text": " ",
+        "userDefined": false
+      },
+      {
+        "text": "centos",
+        "alias": "os",
+        "meta": "@os",
+        "userDefined": false
+      },
+      {
+        "text": " server on ",
+        "userDefined": false
+      },
+      {
+        "text": "aws",
+        "alias": "platform",
+        "meta": "@platform",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  },
+  {
+    "id": "db77342b-f60a-47f8-b2fc-cd234ab1f844",
+    "data": [
+      {
+        "text": "Can I get a ",
+        "userDefined": false
+      },
+      {
+        "text": "medium",
+        "alias": "size",
+        "meta": "@size",
+        "userDefined": false
+      },
+      {
+        "text": " ",
+        "userDefined": false
+      },
+      {
+        "text": "Ubuntu",
+        "alias": "os",
+        "meta": "@os",
+        "userDefined": false
+      },
+      {
+        "text": " server?",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  },
+  {
+    "id": "c64161f7-e2e2-459c-871c-90c653bbf766",
+    "data": [
+      {
+        "text": "I want a ",
+        "userDefined": false
+      },
+      {
+        "text": "small",
+        "alias": "size",
+        "meta": "@size",
+        "userDefined": false
+      },
+      {
+        "text": " ",
+        "userDefined": false
+      },
+      {
+        "text": "windows",
+        "alias": "os",
+        "meta": "@os",
+        "userDefined": false
+      },
+      {
+        "text": " server",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  },
+  {
+    "id": "d162144b-0e6c-4e00-8d9f-3ece99c89e96",
+    "data": [
+      {
+        "text": "I need a ",
+        "userDefined": false
+      },
+      {
+        "text": "windows",
+        "alias": "os",
+        "meta": "@os",
+        "userDefined": false
+      },
+      {
+        "text": " server",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  },
+  {
+    "id": "44da0d2a-f8db-4ff9-9057-c4c12420489d",
+    "data": [
+      {
+        "text": "i want a server",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  },
+  {
+    "id": "a51609e6-60e5-41ff-b155-dbe3646398f5",
+    "data": [
+      {
+        "text": "can I request for a server?",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  },
+  {
+    "id": "a0115f26-563f-44cf-9e07-417e263e952a",
+    "data": [
+      {
+        "text": "I need a server",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  },
+  {
+    "id": "a91c4bd2-3422-4c55-a640-934ff0a0b506",
+    "data": [
+      {
+        "text": "get me a server",
+        "userDefined": false
+      }
+    ],
+    "isTemplate": false,
+    "count": 0,
+    "updated": 0
+  }
+]

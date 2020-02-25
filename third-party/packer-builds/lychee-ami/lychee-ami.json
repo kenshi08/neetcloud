@@ -1,0 +1,64 @@
+{
+    "min_packer_version": "0.12.0",
+    "variables": {
+      "aws_region": "us-west-2",
+      "aws_access_key": "",
+      "aws_secret_key": ""
+    },
+    "builders": [{
+      "access_key": "",
+      "secret_key": "",
+      "ami_name": "lychee-ubuntu-{{isotime | clean_ami_name}}",
+      "ami_description": "An Ubuntu 16.04 AMI that has Apache2 and PHP installed.",
+      "instance_type": "t2.micro",
+      "name": "ubuntu16-ami",
+      "region": "us-west-2",
+      "type": "amazon-ebs",
+      "source_ami_filter": {
+        "filters": {
+          "virtualization-type": "hvm",
+          "architecture": "x86_64",
+          "name": "*ubuntu-xenial-16.04-amd64-server-*",
+          "block-device-mapping.volume-type": "gp2",
+          "root-device-type": "ebs"
+        },
+        "owners": ["099720109477"],
+        "most_recent": true
+      },
+      "ssh_username": "ubuntu"
+    }],
+    "provisioners": [{
+      "type": "shell",
+      "inline": [
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get update -y",  
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y dialog apt-utils git awscli mysql-server apache2 php libapache2-mod-php php-mysql php-mbstring php-gd php-zip php-json php-fpm php-memcached php-pear php-xml php-mbstring php-xdebug php-intl php-curl",
+        "sudo DEBIAN_FRONTEND=noninteractive phpenmod mysqli exif mbstring gd json zip",
+        "git clone https://github.com/electerious/Lychee.git /tmp/lychee",
+        "sudo mv -f /tmp/lychee/* /var/www/html",
+        "sudo chmod -R 777 /var/www/html/uploads/ /var/www/html/data/",
+        "sudo DEBIAN_FRONTEND=noninteractive mysql -e \"CREATE DATABASE lychee;\"",
+        "sudo DEBIAN_FRONTEND=noninteractive mysql -e \"CREATE USER lychee@'%' IDENTIFIED BY 'lychee';\"",
+        "sudo DEBIAN_FRONTEND=noninteractive mysql -e \"GRANT ALL PRIVILEGES ON lychee.* TO lychee@'%';\"",
+        "sudo DEBIAN_FRONTEND=noninteractive mysql -e \"FLUSH PRIVILEGES;\"",
+        "sudo sed -i 's/127.0.0.1/0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "{{template_dir}}/config.php",
+      "destination": "/var/www/html/data/"
+    },
+    {
+      "type" : "shell",
+      "inline": [
+        "sudo /etc/init.d/apache2 restart"
+      ]
+    }],
+    "post-processors": [
+      {
+        "type": "manifest",
+        "output": "manifest.json",
+        "strip_path": true
+      }
+    ]
+  }

@@ -1,0 +1,388 @@
+formatVersion: 1
+#dependencies are:
+# lambda function in S3
+# VPC, SG, Group subnet
+#TODO:
+# create constant
+# tags all services
+inputs:
+  customer_name:
+    type: string
+  titoVersion:
+    type: string
+    description: Tito app version
+    enum:
+      - V2.2
+      - V2.1
+      - V2
+      - V1.9.4
+      - V1.8.9
+    default: V2.2
+  Region:
+    type: string
+    enum:
+      - ap-southeast-1
+    default: ap-southeast-1
+  cluster-size:
+    title: Number of Front End
+    type: integer
+    minimum: 1
+    maximum: 3
+    default: 1
+  wavefront_proxy:
+    title: Proxy Wavefront
+    type: string
+    default: wf-lb-mcm1154120-130504228066-2004399135.ap-southeast-1.elb.amazonaws.com
+  wavefront_port:
+    title: Port Wavefront
+    type: string
+    default: 2878
+resources:
+  LoadBalancer:
+    type: Cloud.LoadBalancer
+    properties:
+      name: LB
+      routes:
+        - port: 80
+          protocol: http
+          instanceProtocol: http
+          instancePort: 80
+      network: '${resource.Public_Nw.name}'
+      instances:
+        - '${resource.Front_end.id}'
+      internetFacing: true
+  Front_end:
+    type: Cloud.Machine
+    dependsOn:
+      - DB
+      - API_Gw_Deployment
+    count: '${input.FrontEndNumber}'
+    properties:
+      image: centos7
+      count: '${input.cluster-size}'
+      flavor: small
+      remoteAccess:
+        authentication: publicPrivateKey
+        sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+        username: ubuntu
+      networks:
+        - name: '${resource.Public_Nw.name}'
+          network: '${resource.Public_Nw.id}'
+      cloudConfig: |
+        #cloud-config
+        # log all cloud-init process output (info & errors) to a logfile
+        output: {all: ">> /var/log/cloud-init-output.log"}
+        packages:
+          - git
+          - mysql
+        runcmd:
+          - cd /tmp
+          - sudo git clone https://github.com/gnemkiy/testcreds.git
+          - su - ubuntu
+          - eval "$(ssh-agent -s)"
+          - sudo cp /tmp/testcreds/sample/id_rsa /home/ubuntu/.ssh/.
+          - sudo chmod 400 /home/ubuntu/.ssh/id_rsa
+          - eval "$(ssh-agent -s)"
+          - ssh-add -k /home/ubuntu/.ssh/id_rsa
+          - sudo cd /home/ubuntu/.ssh/
+          - ssh -o StrictHostKeyChecking=no -T git@github.com
+          - git clone git@github.com:kenshi08/saasops.git
+          - cd /saasops/Tito/asset/Deployment/CloudAssembly/titodb
+          - chmod u+x *.sh
+          - [ /tmp/saasops/Tito/asset/Deployment/CloudAssembly/titodb/tito_as.sh, ${resource.DB.address} ]
+          - sed -i -e 's|API_GW|https://${resource.API_Gateway_Rest.id}.execute-api.${input.Region}.amazonaws.com/${input.customer_name}|g' /var/www/html/index.php
+          - mysql -u root -h ${resource.RDS_Cluster_Instance.endpoint} -p Tito2016 << EOF
+          - create database if not exists Tito4DB;
+          - use Tito4DB;
+          - CREATE TABLE TitoTable (name VARCHAR(50) NOT NULL, picture VARCHAR(200) NOT NULL, capa INT, location INT, available INT);
+          - INSERT INTO TitoTable VALUES("Audi Q7","https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/2018-audi-q7-20-tfsi-quattro-komfort.png",70,0.2,1);
+          - INSERT INTO TitoTable VALUES("Tesla Model S","https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/tesla2.png",88,0.1,0);
+          - INSERT INTO TitoTable VALUES("Audi A3 Electric", "https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/AudiA3r.png", 20, 0.6,1);
+          - INSERT INTO TitoTable VALUES("BMW Serie 3", "https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/BMW-i3-Electric-Car.png", 55, 1.2, 1);
+          - INSERT INTO TitoTable VALUES("BMW Serie 4", "https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/BMX-serie-4.png", 43, 0.8, 1);
+          - INSERT INTO TitoTable VALUES("Drone", "https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/Flyride185.png", 28, 0.1, 1);
+          - INSERT INTO TitoTable VALUES("Peugeot 3008", "https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/Peugeot-3008.png", 89, 0.3, 1);
+          - INSERT INTO TitoTable VALUES("Suzuki 750", "https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/Suzuki-750.png", 68, 0.9, 1);
+          - INSERT INTO TitoTable VALUES("Renault Grand scenic", "https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/renault_grand-scenic.png", 81, 0.4, 1);
+          - INSERT INTO TitoTable VALUES("Smart Roadster", "https://neetcloud-tito.s3-ap-southeast-1.amazonaws.com/tito4picture/smart+roadster.png", 52, 0.7, 1);
+          - EOF
+  Route53_Record:
+    type: Cloud.Service.AWS.Route53.Record
+    properties:
+      name: '${input.customer_name}'
+      type: CNAME
+      region: ap-southeast-1
+      account: neetcloud-aws
+      zone_id: Z1DXP5AZ44Z4IY
+      records:
+        - '${resource.LoadBalancer.address}'
+      ttl: 60
+  DB:
+    type: Cloud.Machine
+    properties:
+      image: centos7
+      flavor: small
+      networks:
+        - name: '${resource.Public_Nw.name}'
+          network: '${resource.Public_Nw.id}'
+      remoteAccess:
+        authentication: publicPrivateKey
+        sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+        username: ubuntu
+      cloudConfig: |
+        packages:
+          - mysql
+          - mariadb-server
+          - mariadb
+        runcmd:
+          - sudo systemctl enable mariadb.service
+          - sudo systemctl start mariadb.service
+          - mysql -u root << EOF
+          - USE mysql;
+          - SELECT user,host FROM user;
+          - GRANT ALL PRIVILEGES ON *.* TO root@'%' WITH GRANT OPTION;
+          - EOF
+        #to update the root password
+          - sudo systemctl stop mariadb.service
+          - sudo mysqld_safe --skip-grant-tables &
+          - mysql -u root << EOF
+          - UPDATE mysql.user SET Password=PASSWORD('Tito2016') WHERE User='root';
+          - FLUSH PRIVILEGES;
+          - EOF
+          - sudo mysqladmin -u root -pTito2016 shutdown
+          - sudo systemctl start mariadb.service
+          
+          #create conf DB and table
+          - mysql -u root -pTito2016 << EOF
+          - create database if not exists TitoDB;
+          - use TitoDB;
+          - CREATE TABLE TitoTable (id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY, home VARCHAR(50) NOT NULL, work VARCHAR(50) NOT NULL, hour_home_departure VARCHAR(50) NOT NULL, hour_work_departure VARCHAR(50) NOT NULL)
+          - EOF
+  Public_Nw:
+    type: Cloud.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'env:test'
+        - tag: 'function:public'
+  API_Gw_Deployment:
+    type: Cloud.Service.AWS.API.Gateway.Deployment
+    dependsOn:
+      - Read_Integration
+      - Reset_Integration
+      - Book_Integration
+    properties:
+      account: neetcloud-aws
+      stage_name: '${input.customer_name}'
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      provider_region: ap-southeast-1
+  API_Gateway_Rest:
+    type: Cloud.Service.AWS.API.Gateway.Rest.API
+    properties:
+      name: 'Tito-API_GW-${env.deploymentName}-${input.customer_name}'
+      account: neetcloud-aws
+      provider_region: ap-southeast-1
+  Resource_Read:
+    type: Cloud.Service.AWS.API.Gateway.Resource
+    properties:
+      account: neetcloud-aws
+      parent_id: '${resource.API_Gateway_Rest.root_resource_id}'
+      path_part: read
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      provider_region: ap-southeast-1
+  Resource_Book:
+    type: Cloud.Service.AWS.API.Gateway.Resource
+    properties:
+      account: neetcloud-aws
+      parent_id: '${resource.API_Gateway_Rest.root_resource_id}'
+      path_part: book
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      provider_region: ap-southeast-1
+  Resource_Reset:
+    type: Cloud.Service.AWS.API.Gateway.Resource
+    properties:
+      account: neetcloud-aws
+      parent_id: '${resource.API_Gateway_Rest.root_resource_id}'
+      path_part: reset
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      provider_region: ap-southeast-1
+  Read_Integration:
+    type: Cloud.Service.AWS.API.Gateway.Integration
+    dependsOn:
+      - read
+    properties:
+      provider_region: ap-southeast-1
+      account: neetcloud-aws
+      type: AWS_PROXY
+      http_method: '${resource.Method_read.http_method}'
+      resource_id: '${resource.Resource_Read.id}'
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      integration_http_method: POST
+      uri: 'arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/${resource.read.arn}/invocations'
+  Book_Integration:
+    type: Cloud.Service.AWS.API.Gateway.Integration
+    dependsOn:
+      - book
+    properties:
+      provider_region: ap-southeast-1
+      account: neetcloud-aws
+      type: AWS_PROXY
+      http_method: '${resource.Method_book.http_method}'
+      resource_id: '${resource.Resource_Book.id}'
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      integration_http_method: POST
+      uri: 'arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/${resource.book.arn}/invocations'
+  Reset_Integration:
+    type: Cloud.Service.AWS.API.Gateway.Integration
+    dependsOn:
+      - reset
+    properties:
+      provider_region: ap-southeast-1
+      account: neetcloud-aws
+      type: AWS_PROXY
+      http_method: '${resource.Method_Reset.http_method}'
+      resource_id: '${resource.Resource_Reset.id}'
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      integration_http_method: POST
+      uri: 'arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/${resource.reset.arn}/invocations'
+  read:
+    type: Cloud.Service.AWS.Lambda.Function
+    properties:
+      role: 'arn:aws:iam::994172548385:role/neetcloud-lambda'
+      region: ap-southeast-1
+      account: neetcloud-aws
+      handler: index.handler
+      runtime: nodejs12.x
+      function_name: 'read-${env.deploymentName}-${input.customer_name}'
+      tags:
+        customer_name: '${input.customer_name}'
+      s3_bucket: neetcloud-tito
+      s3_key: read.zip
+      vpc_config:
+        - subnet_ids:
+            - subnet-0191b4a71bb5dc4db
+          security_group_ids:
+            - sg-0941790023bc6ceb6
+      environment:
+        - variables:
+            DB: '${resource.RDS_Cluster_Instance.endpoint}'
+  book:
+    type: Cloud.Service.AWS.Lambda.Function
+    properties:
+      role: 'arn:aws:iam::994172548385:role/neetcloud-lambda'
+      region: ap-southeast-1
+      account: neetcloud-aws
+      handler: index.handler
+      runtime: nodejs12.x
+      function_name: 'book-${env.deploymentName}-${input.customer_name}'
+      tags:
+        customer_name: '${input.customer_name}'
+      s3_bucket: neetcloud-tito
+      s3_key: book.zip
+      vpc_config:
+        - subnet_ids:
+            - subnet-0191b4a71bb5dc4db
+          security_group_ids:
+            - sg-0941790023bc6ceb6
+      environment:
+        - variables:
+            DB: '${resource.RDS_Cluster_Instance.endpoint}'
+  reset:
+    type: Cloud.Service.AWS.Lambda.Function
+    properties:
+      role: 'arn:aws:iam::994172548385:role/neetcloud-lambda'
+      region: ap-southeast-1
+      account: neetcloud-aws
+      handler: index.handler
+      runtime: nodejs12.x
+      function_name: 'reset-${env.deploymentName}-${input.customer_name}'
+      tags:
+        customer_name: '${input.customer_name}'
+      s3_bucket: neetcloud-tito
+      s3_key: reset.zip
+      vpc_config:
+        - subnet_ids:
+            - subnet-0191b4a71bb5dc4db
+          security_group_ids:
+            - sg-0941790023bc6ceb6
+      environment:
+        - variables:
+            DB: '${resource.RDS_Cluster_Instance.endpoint}'
+  Method_read:
+    type: Cloud.Service.AWS.API.Gateway.Method
+    properties:
+      account: neetcloud-aws
+      http_method: GET
+      resource_id: '${resource.Resource_Read.id}'
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      authorization: None
+      provider_region: ap-southeast-1
+  Method_book:
+    type: Cloud.Service.AWS.API.Gateway.Method
+    properties:
+      account: neetcloud-aws
+      http_method: POST
+      resource_id: '${resource.Resource_Book.id}'
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      authorization: None
+      provider_region: ap-southeast-1
+  Method_Reset:
+    type: Cloud.Service.AWS.API.Gateway.Method
+    properties:
+      account: neetcloud-aws
+      http_method: GET
+      resource_id: '${resource.Resource_Reset.id}'
+      rest_api_id: '${resource.API_Gateway_Rest.id}'
+      authorization: None
+      provider_region: ap-southeast-1
+  Lambda_Permission_read:
+    type: Cloud.Service.AWS.Lambda.Permission
+    properties:
+      action: 'lambda:InvokeFunction'
+      region: ap-southeast-1
+      account: neetcloud-aws
+      principal: apigateway.amazonaws.com
+      function_name: '${resource.read.function_name}'
+      statement_id: AllowExecutionFromAPIGatewayforRead
+  Lambda_Permission_book:
+    type: Cloud.Service.AWS.Lambda.Permission
+    properties:
+      action: 'lambda:InvokeFunction'
+      region: ap-southeast-1
+      account: neetcloud-aws
+      principal: apigateway.amazonaws.com
+      function_name: '${resource.book.function_name}'
+      statement_id: AllowExecutionFromAPIGatewayforBook
+  Lambda_Permission_reset:
+    type: Cloud.Service.AWS.Lambda.Permission
+    properties:
+      action: 'lambda:InvokeFunction'
+      region: ap-southeast-1
+      account: neetcloud-aws
+      principal: apigateway.amazonaws.com
+      function_name: '${resource.reset.function_name}'
+      statement_id: AllowExecutionFromAPIGatewayforReset
+  RDS_Cluster_Instance:
+    type: Cloud.Service.AWS.RDS.Cluster.Instance
+    properties:
+      engine: aurora-mysql
+      identifier: '${input.customer_name}'
+      region: ap-southeast-1
+      account: neetcloud-aws
+      instance_class: db.t2.small
+      cluster_identifier: '${resource.RDS_Cluster[0].id}'
+      availability_zone: ap-southeast-1a
+      publicly_accessible: true
+      db_subnet_group_name: neetcloud-rds-sg
+  RDS_Cluster:
+    type: Cloud.Service.AWS.RDS.Cluster
+    properties:
+      region: ap-southeast-1
+      account: neetcloud-aws
+      engine: aurora-mysql
+      master_username: root
+      master_password: Tito2016
+      skip_final_snapshot: true
+      db_subnet_group_name: neetcloud-rds-sg
+      vpc_security_group_ids:
+        - sg-0941790023bc6ceb6

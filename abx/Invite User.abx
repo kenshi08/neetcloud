@@ -1,0 +1,17 @@
+---
+exportVersion: "1"
+exportId: "8a7699c86c3d8f37016c4074c4730306"
+name: "Invite User"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  orgId: "04999502-34a4-49f2-b901-148713172e81"
+  baseUri: "https://console.cloud.vmware.com"
+  casToken: ""
+  usernames:
+  - "kenshi08@gmail.com"
+timeoutSeconds: 180
+deploymentTimeoutSeconds: 600
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 150

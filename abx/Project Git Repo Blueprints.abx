@@ -1,0 +1,25 @@
+---
+exportVersion: "1"
+exportId: "8a76a0ac6c29e15e016c3c0219181850"
+name: "Project Git Repo Blueprints"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  name: "Github-BP"
+  type: "com.github.saas"
+  typeId: "com.github"
+  baseUri: "https://api.mgmt.cloud.vmware.com/"
+  casToken: ""
+  projectIds:
+  - "81e5de7e-c49a-4dda-9712-610385cef550"
+  syncEnabled: "true"
+  configBlueprint:
+    path: "blueprints/Release"
+    branch: "master"
+    repository: "kenshi08/neetcloud"
+    contentType: "BLUEPRINT"
+timeoutSeconds: 180
+deploymentTimeoutSeconds: 600
+actionType: "SCRIPT"
+provider: "aws"
+memoryInMB: 150

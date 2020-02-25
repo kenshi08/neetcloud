@@ -1,0 +1,22 @@
+---
+exportVersion: "1"
+exportId: "8a76958b6b66e523016b6a7fb6f90275"
+name: "SNOW - Create CI action"
+runtime: "python"
+entrypoint: "handler"
+inputs:
+  cpuCount: 1
+  memoryInMB: 1024
+  instanceUrl: "dev74303.service-now.com"
+  serviceNowPassword: "SNOW Dev PASSWORD HERE"
+  serviceNowUserName: "admin"
+timeoutSeconds: 180
+deploymentTimeoutSeconds: 600
+actionType: "SCRIPT"
+configuration:
+  const-providers:
+  - "aws"
+  const_azure-system_managed_identity: false
+actionTemplateName: "Custom script"
+actionTemplateNamespace: "com.vmware.automation.abx"
+memoryInMB: 150

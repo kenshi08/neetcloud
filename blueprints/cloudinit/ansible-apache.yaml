@@ -1,0 +1,44 @@
+formatVersion: 1
+inputs: {}
+resources:
+  Cloud_Ansible_1:
+    type: Cloud.Ansible
+    properties:
+      host: '${resource["ansible-test"].*}'
+      inventoryFile: /etc/ansible/hosts
+      maxConnectionRetries: 20
+      playbooks:
+        provision:
+          - /home/playbooks/web.yml
+      groups:
+        - cas-servers
+      osType: linux
+      account: neetcloud-ansible
+      username: ubuntu
+      password: VMw@r31!
+  ansible-test:
+    type: Cloud.Machine
+    properties:
+      enable_snapshot: true
+      image: ubuntu
+      flavor: small
+      constraints:
+        - tag: 'platform:vsphere'
+        - tag: 'env:test'
+      networks:
+        - network: '${resource.Cloud_Network_1.id}'
+      cloudConfig: |
+        package_update: true
+        packages:
+        – python
+        users:
+          – name: ubuntu
+            ssh-authorized-keys:
+              – ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDGY+5Mo4RgvVSZVsRAxxbw8u8DMsL5zbZWOVVaGMfJ/nkajJuaGZpYEh+Rp9NOtC72qR7n7jzq65dgwI77I+MKxIgucQnHUxf8PY8+rB8TviARLfIhH8MAZUWiBLZUWa017s7QPKgrZMXA3TxiO9QZI/FQ8vhFl5YO+V6F364uOcFfgJlUT8FfnhvPDL+ufyRoXBX32xeAcH1DwEPIZu7oq1aDghGnNjfppE3kQtQZBbRNSCJoj7S0V688zYDXQU2ZADfhy3Krx7CDVjYwuGYmSPbnrtbXfLTvliPhb6BbJ0oWv+Z2RPDomT9Ah954bRm9O1Twf5mVUwhaU5l8Qu5r
+  Cloud_Network_1:
+    type: Cloud.Network
+    properties:
+      name: test-net
+      networkType: existing
+      constraints:
+        - tag: 'tier:lab'

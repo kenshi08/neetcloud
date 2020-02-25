@@ -1,0 +1,26 @@
+[
+  {
+    "value": "centos",
+    "synonyms": [
+      "centos"
+    ]
+  },
+  {
+    "value": "coreos",
+    "synonyms": [
+      "coreos"
+    ]
+  },
+  {
+    "value": "ubuntu",
+    "synonyms": [
+      "ubuntu"
+    ]
+  },
+  {
+    "value": "windows",
+    "synonyms": [
+      "windows"
+    ]
+  }
+]

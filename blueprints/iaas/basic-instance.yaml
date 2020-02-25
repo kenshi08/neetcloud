@@ -1,0 +1,61 @@
+inputs:
+  os:
+    title: Operating System
+    description: This value controls the operating system to which your server will be based on
+    type: string
+    enum:
+      - ubuntu
+      - centos
+    default: ubuntu
+  size:
+    title: Size of the server
+    description: This value controls the size of the server
+    type: string
+    enum:
+      - small
+      - medium
+      - large
+    default: small
+  count:
+    type: integer
+    default: 1
+    maximum: 3
+    minimum: 1
+    title: No. of instances
+  network:
+    title: Network Type
+    description: This value controls the network of choice
+    type: string
+    enum:
+      - public
+      - private
+    default: public
+  platform:
+    title: Platform
+    description: This value controls the platform of choice
+    type: string
+    enum:
+      - aws
+      - vsphere
+      - azure
+    default: aws
+resources:
+  Cloud_Machine_1:
+    type: Cloud.Machine
+    properties:
+      image: '${input.os}'
+      flavor: '${input.size}'
+      osType: '${input.os}'
+      count: '${input.count}'
+      networks:
+        - name: '${Cloud_Network_1.name}'
+      constraints:
+        - tag: 'platform:${input.platform}'
+  Cloud_Network_1:
+    type: Cloud.Network
+    properties:
+      name: server_net
+      networkType: existing
+      constraints:
+        - tag: 'network:${input.network}'
+        - tag: 'platform:${input.platform}'

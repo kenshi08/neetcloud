@@ -1,0 +1,34 @@
+[
+  {
+    "value": "aws",
+    "synonyms": [
+      "AWS",
+      "Amazon",
+      "aws"
+    ]
+  },
+  {
+    "value": "azure",
+    "synonyms": [
+      "Azure",
+      "azure"
+    ]
+  },
+  {
+    "value": "vmc",
+    "synonyms": [
+      "VMware Cloud",
+      "vmc",
+      "vmwonaws"
+    ]
+  },
+  {
+    "value": "vsphere",
+    "synonyms": [
+      "VMware",
+      "vSphere",
+      "vmw",
+      "vsphere"
+    ]
+  }
+]

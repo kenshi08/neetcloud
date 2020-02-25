@@ -1,0 +1,22 @@
+formatVersion: 1
+name: neetcloud-vSphereTemplateBuilder
+version: 1.0
+inputs:
+resources:
+  Cloud_Machine_1:
+    type: Cloud.Machine
+    properties:
+      image: 'ubuntu1604'
+      flavor: 'small'
+      networks:
+        - name: '${Cloud_Network_1.name}'
+      constraints:
+        - tag: 'platform:aws'
+  Cloud_Network_1:
+    type: Cloud.Network
+    properties:
+      name: server_net
+      networkType: existing
+      constraints:
+        - tag: 'env:test'
+        - tag: 'function:private'

@@ -1,0 +1,25 @@
+# vRealize Automation
+vra_refresh_token   = ""
+vra_url             = ""
+
+# AWS Cloud Account
+aws_cloud_account   = ""
+aws_access_key      = ""
+aws_secret_key      = ""
+region              = "us-west-1"
+
+#Cloud Zone
+aws_cloud_zone      = ""
+
+#vRA Project
+vra_project_name         = ""
+
+#network profiles
+network_profile_name = ""
+subnet_name      = ""
+
+#Blueprint
+bp_name = ""
+
+#Deployment
+deployment_name = ""

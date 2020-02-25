@@ -1,0 +1,100 @@
+formatVersion: 1
+inputs:
+  application:
+    type: string
+    default: tito
+    readOnly: true
+  environment:
+    type: string
+    description: App Environment
+    default: test
+    enum:
+      - dev
+      - test
+  cloud_target:
+    type: string
+    description: Select target cloud
+    enum:
+      - 'platform:aws'
+      - 'platform:azure'
+      - 'platform:gcp'
+      - 'platform:vsphere'
+  azureresourcegrp:
+    type: string
+    description: Azure Resource Group
+    default: ''
+    enum:
+      - ''
+      - operationsaas
+      - planes
+      - test
+  sshkey:
+    type: string
+    description: VM SSH Key
+    default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+    encrypted: true
+resources:
+  mgmt_net:
+    type: Cloud.Network
+    properties:
+      name: PublicCloudNetwork
+      networkType: existing
+      constraints:
+        - tag: 'function:mgmt'
+        - tag: 'env:${input.environment}'
+  testrunner:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu1604
+      flavor: medium
+      remoteAccess:
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      resourceGroupName: '${input.azureresourcegrp}'
+      constraints:
+        - tag: '${input.cloud_target}'
+      cloudConfig: |
+        #cloud-config
+        packages:
+        - git
+        - npm
+        - curl
+        - python-software-properties
+        - python3-pip
+        users:
+        - name: testrunner
+          ssh-authorized-keys:
+            - ${input.sshkey}
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          groups: sudo
+          shell: /bin/bash
+        runcmd:
+        - USER='testrunner'
+        - PASS='VMware1!'
+        - echo $USER:$PASS | /usr/sbin/chpasswd
+        - echo $USER:$PASS | /usr/sbin/chpasswd
+        - sed -i "s/PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+        - sed -i "s/#PasswordAuthentication yes/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+        - sed -i -e '$aAllowUsers testrunner' /etc/ssh/sshd_config
+        - sed -i -e "s/^#MaxSessions .*\$/MaxSessions 100/" /etc/ssh/sshd_config
+        - sed -i -e "s/^#MaxStartups .*\$/MaxStartups 100/" /etc/ssh/sshd_config
+        - service ssh reload
+        - curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        - sudo apt-get -y install nodejs
+        - sudo apt-get -y install xvfb libgtk2.0-0 libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2
+        - node -v
+        - sudo -i -u testrunner npm install cypress --save-dev
+        - sudo -i -u testrunner /home/testrunner/node_modules/.bin/cypress verify
+        - sudo chown -R testrunner /home/testrunner/.config/Cypress/
+        - sudo apt -y install python3-pip
+        - sudo python3 -m pip install locustio
+        - pip3 install slackclient
+        - sudo mkdir /usr/local/bin/locust_files
+        - sudo curl -s https://gitlab.com/snippets/1868717/raw --output /usr/local/bin/locust_files/locustWavefront.py
+        - sudo chmod 755 /usr/local/bin/locust_files/locustWavefront.py
+        - curl -s https://gitlab.com/snippets/1868722/raw --output /home/testrunner/titoactions.spec.js
+        - curl -s https://gitlab.com/snippets/1868745/raw --output /home/testrunner/cypress.json
+        - curl -s https://gitlab.com/snippets/1868747/raw --output /home/testrunner/slackUpload.py
+        - chmod 755 /home/testrunner/slackUpload.py
+      networks:
+        - network: '${resource.mgmt_net.id}'
