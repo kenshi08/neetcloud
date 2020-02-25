@@ -23,7 +23,7 @@ inputs:
   mapsapikey:
     type: string
     description: GMAPS API key
-    default: AIzaSyA00LzAkKbZAMtJQnK8gsA6lespU-ymDPA
+    default: INPUT GMAPS Key
     encrypted: true
   sshkey:
     type: string
