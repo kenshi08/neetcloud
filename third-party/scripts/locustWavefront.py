@@ -7,9 +7,7 @@ import socket
 import atexit
 import os
 import gevent
-from gevent.coros import RLock
 
-lock = RLock()
 resource.setrlimit(resource.RLIMIT_NOFILE, (999999, 999999))
 
 # Wavefront metric format
@@ -39,19 +37,33 @@ class MyLocust(HttpLocust):
         myHost = self.host
         myHost = myHost.replace("http://","")
         met_locustRequest = 'locust.response.success' + ' ' + str(response_time) + ' ' + str(time.time()) + ' ' + 'source=' + myHost + ' ' + 'app=Tito' + ' \n'
-        self.sock.sendall(met_locustRequest.encode('utf-8'))
+        try:
+            self.sock.sendall(met_locustRequest.encode('utf-8'))
+        except BrokenPipeError:
+            # Don't be surprised if the socket is in "not
+            # connected" state.
+            #print(met_locustRequest)
+            pass
+        
         #print(met_locustRequest)
 
     def hook_request_fail(self, request_type, name, response_time, exception):
         myHost = self.host
         myHost = myHost.replace("http://","")
         met_locustRequestFailed = 'locust.response.failed' + ' ' + str(response_time) + ' ' + str(time.time()) + ' ' + 'source=' + myHost + ' ' + 'app=Tito' + ' \n'
-        self.sock.sendall(met_locustRequestFailed.encode('utf-8'))
+        try:
+            self.sock.sendall(met_locustRequestFailed.encode('utf-8'))
+        except BrokenPipeError:
+            # Don't be surprised if the socket is in "not
+            # connected" state.
+            #print(met_locustRequestFailed)
+            pass
         #print(met_locustRequestFailed)
 
     def exit_handler(self):
         try:
             self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
         except IOError:
             # Don't be surprised if the socket is in "not
             # connected" state.
