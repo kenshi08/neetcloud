@@ -38,7 +38,7 @@ inputs:
   wavefront_proxy:
     type: string
     title: Wavefront proxy
-    default: 54.254.230.9
+    default: 13.250.28.125
 resources:
   fe-lb:
     type: Cloud.LoadBalancer
