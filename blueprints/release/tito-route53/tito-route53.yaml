@@ -1,0 +1,30 @@
+formatVersion: 1
+name: tito-route53
+version: 1.0
+inputs:
+  region:
+    default: ap-southeast-1
+    readOnly: true
+    type: string
+  route53_zone_id:
+    default: Z1DXP5AZ44Z4IY
+    readOnly: true
+    type: string
+  dns_name:
+    type: string
+    pattern: '[a-z]'
+  ELBDNSname:
+    type: string
+resources:
+  tito_route53:
+    type: Cloud.Service.AWS.Route53.Record
+    properties:
+      name: '${input.dns_name}'
+      type: A
+      alias:
+        - name: '${input.ELBDNSname}'
+          evaluate_target_health: false
+          zone_id: Z1DXP5AZ44Z4IY
+      region: '${input.region}'
+      zone_id: '${input.route53_zone_id}'
+      account: apj-sddc-aws

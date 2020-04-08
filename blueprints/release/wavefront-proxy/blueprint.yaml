@@ -1,0 +1,88 @@
+formatVersion: 1
+name: wavefront-proxy
+version: 1.0
+inputs:
+  wavefrontURL:
+    type: string
+    default: longboard.wavefront.com
+  wavefrontToken:
+    type: string
+    encrypted: true
+    default: eca7ad1e-b718-4d5f-a848-4b43cd6eb8ae
+  application:
+    type: string
+    default: shared-service
+    readOnly: true
+  environment:
+    type: string
+    description: App Environment
+    default: test
+    enum:
+      - dev
+      - test
+  platform:
+    type: string
+    description: Select target cloud
+    enum:
+      - 'platform:aws'
+      - 'platform:azure'
+      - 'platform:vsphere'
+  azureresourcegrp:
+    type: string
+    description: Azure Resource Group
+    default: ''
+    enum:
+      - ''
+      - apj-sddc-demo
+  sshkey:
+    type: string
+    description: SSHKey
+    encrypted: true
+    default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+resources:
+  wf-lb:
+    type: Cloud.LoadBalancer
+    properties:
+      name: wf-lb
+      resourceGroupName: '${input.azureresourcegrp}'
+      routes:
+        - instancePort: 2878
+          instanceProtocol: tcp
+          protocol: tcp
+          port: 2878
+      network: '${resource.pub_net.name}'
+      instances:
+        - '${resource.wf_proxy.id}'
+      internetFacing: true
+  wf_proxy:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu1604
+      flavor: small
+      remoteAccess:
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      constraints:
+        - tag: '${input.platform}'
+      networks:
+        - name: '${resource.pub_net.name}'
+          network: '${resource.pub_net.id}'
+      cloudConfig: |
+        #cloud-config
+        users:
+          - name: wavefront
+            ssh-authorized-keys:
+            - ${input.sshkey}
+            sudo: ['ALL=(ALL) NOPASSWD:ALL']
+            groups: sudo
+            shell: /bin/bash
+        runcmd:
+          - 'sudo bash -c "$(curl -sL https://wavefront.com/install)" -- install --proxy --wavefront-url https://${input.wavefrontURL} --api-token ${input.wavefrontToken}'
+  pub_net:
+    type: Cloud.Network
+    properties:
+      name: pub_net
+      networkType: public
+      constraints:
+        - tag: 'env:${input.environment}'
+        - tag: 'function:mgmt'
