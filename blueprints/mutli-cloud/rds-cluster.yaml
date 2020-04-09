@@ -1,34 +1,81 @@
-formatVersion: 1
-inputs: {}
+inputs:
+  clusternodecount:
+    type: integer
+    default: 1
+    title: RDS Cluster Nodes
+    description: No. of nodes for RDS Cluster
+  rdsinstanceclass:
+    type: string
+    default: db.t2.small
+    title: RDS Instance Class
+    description: Enter the desired RDS instance class
+  dbname:
+    type: string
+    default: neetcloudmysql
+    title: Database Name
+    description: Enter Database name
+  dbusername:
+    type: string
+    default: neetcloud
+    title: Database Username
+    description: Enter DB Username
+  dbpassword:
+    type: string
+    encrypted: true
+    title: Database Password
+    description: Enter Database Password
+  finalsnapshot:
+    type: string
+    enum:
+      - 'true'
+      - 'false'
+    default: 'true'
+    title: Skip Final RDS Snapshot
+    description: Set to true to skip final snapshot
+  clusterprefix:
+    type: string
+    default: neetcloud-cluster-
+    title: Cluster Name Prefix
+    description: RDS Cluster Name Prefix
+  instanceprefix:
+    type: string
+    default: neetcloud-instance-
+    title: Instance Name Prefix
+    description: RDS Instance Name Prefix
 resources:
   RDS_Cluster_1:
     type: Cloud.Service.AWS.RDS.Cluster
     dependsOn:
-      - Cloud_Network_1
+      - rds_net
     properties:
-      region: ap-southeast-2
-      account: SDDC APJ AWS
-      master_password: foobarbaz
-      master_username: foo
+      region: ap-southeast-1
+      account: neetcloud-aws
+      database_name: '${input.dbname}'
+      master_username: '${input.dbusername}'
+      master_password: '${input.dbpassword}'
+      cluster_identifier_prefix: '${input.clusterprefix}'
+      skip_final_snapshot: '${input.finalsnapshot}'
       availability_zones:
-        - ap-southeast-2a
-        - ap-southeast-2c
-  Cloud_Network_1:
+        - ap-southeast-1a
+        - ap-southeast-1c
+  rds_net:
     type: Cloud.Network
     properties:
-      name: rds network
+      name: rds_network
       networkType: existing
-  RDS_DB_3:
+      constraints:
+        - tag: 'env:dev'
+        - tag: 'platform:aws'
+  RDS_DB_1:
     type: Cloud.Service.AWS.RDS.Cluster.Instance
     dependsOn:
-      - Cloud_Network_1
+      - rds_net
     properties:
-      count: 2
-      identifier_prefix: multi-az-
-      region: ap-southeast-2
-      account: SDDC APJ AWS
-      allocated_storage: 20
-      instance_class: db.t2.small
-      name: mydb
-      cluster_identifier: '${resource.RDS_Cluster_1.id}'
       multi_az: true
+      account: neetcloud-aws
+      region: ap-southeast-1
+      allocated_storage: 20
+      count: '${input.clusternodecount}'
+      cluster_identifier: '${resource.RDS_Cluster_1.id}'
+      instance_class: '${input.rdsinstanceclass}'
+      identifier_prefix: '${input.instanceprefix}'

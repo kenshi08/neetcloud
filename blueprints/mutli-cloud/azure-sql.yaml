@@ -25,8 +25,8 @@ resources:
   resource_group:
     type: Cloud.Azure.ResourceGroup
     properties:
-      name: neetcloud-resource-grp
-      useExisting: false
+      name: rg-vmwapj-sddc
+      useExisting: true
   sql_db:
     type: Cloud.Service.Azure.SQL.Database
     properties:
