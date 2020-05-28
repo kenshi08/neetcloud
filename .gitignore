@@ -1,2 +1,6 @@
 third-party/terraform/aws/terraform.tfvars.tf
 third-party/terraform/vra8/terraform.tfvars.tf
+third-party/terraform/vra8/.terraform/plugins/windows_amd64/lock.json
+third-party/terraform/vra8/terraform.tfvars
+third-party/terraform/vra8/terraform.tfstate.backup
+third-party/terraform/vra8/terraform.tfstate

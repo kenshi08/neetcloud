@@ -84,7 +84,7 @@ resource "vra_image_profile" "image_west" {
 # Create a new Project
 resource "vra_project" "this" {
   provisioner "local-exec" {
-      command = "sleep 30"
+      command = "ping -n 30 127.0.0.1 >nul"
   }
   depends_on = [vra_cloud_account_aws.this,vra_zone.zone_aws_west]
   name        = var.vra_project_name

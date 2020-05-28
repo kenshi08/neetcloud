@@ -1,0 +1,212 @@
+formatVersion: 1
+inputs:
+  env:
+    type: string
+    enum:
+      - dev
+      - test
+    description: Target Environment
+    default: dev
+    title: Environment
+    oneOf:
+      - title: Dev
+        const: dev
+      - title: Test
+        const: test
+  user:
+    type: string
+    title: Username for System Admin Account
+    description: The username you would like to have for the installation.
+    default: tkg-admin
+  pass:
+    type: string
+    encrypted: true
+    title: Password for TKG-Cluster User.
+    description: The password you would like to have for TKG-Cluster
+    default: VMware1!
+  sshkey:
+    type: string
+    description: Instance SSH Key
+    default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRDoEwuRngIEKVGnmeULwtpt1wNGiJV1qonI8IcCDNo9CLL1sJMui0K7uzP7LPQk2NvJLBBbI6BOcKUr8Z9c5MdLHtklHKFHZT7yR/kZqa34WsEcTn2DT3I0QC89nfapk8DIJ/Uq2TDMB2Ee3SSyWIiBpWJuRhYuw8g6I2pwvd27T0iK8FNelr3AT5yzqF4GdfhosX/6KVPWZmeEDyY/uw45Wl3QQd8Nsssl0FcAc6tl0NXtfns3VSX6EfVpiYcl01BKZW/QpsNH7oN8Q5oWYbSF3s8gYF2qeng/oprCSIOkdCfe8zrP8YMDfOc6QdxXTxfI63vGKAA15mKZfXRKvr kenshi08@me.com
+    encrypted: true
+resources:
+  Master-Node:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu1804
+      flavor: medium
+      networks:
+        - network: '${resource["Tkg-Network"].id}'
+          assignment: static
+      remoteAccess:
+        username: neetcloud
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      cloudConfig: |
+        #cloud-config
+        # log all cloud-init process output (info & errors) to a logfile
+        output: {all: ">> /var/log/cloud-init-output.log"}
+        repo_update: true
+        repo_upgrade: all
+        apt_source:
+          - source: 'deb http://archive.ubuntu.com/ubuntu main universe multiverse restricted'
+        users:
+          - name: '${input.user}'
+            sudo: 'ALL=(ALL) NOPASSWD:ALL'
+            groups: sudo
+            shell: /bin/bash
+        runcmd:
+          - sudo swapoff -a
+          - sudo apt-get install sshpass -y
+          - sudo hostnamectl set-hostname tkg-Master-01
+          - sudo mkdir /var/TKG/
+          - sudo git clone https://github.com/gnemkiy/testcreds.git
+          - su - neetcloud
+          - eval "$(ssh-agent -s)"
+          - sudo cd /home/neetcloud/.ssh/
+          - sudo cp /testcreds/sample/id_rsa /home/neetcloud/.ssh/.
+          - sudo chmod 400 /home/neetcloud/.ssh/id_rsa
+          - eval "$(ssh-agent -s)"
+          - ssh-add -k /home/neetcloud/.ssh/id_rsa
+          - ssh -o StrictHostKeyChecking=no -T git@github.com
+          - git clone git@github.com:kenshi08/tkg-sa.git
+          - sudo cp -r tkg/* /var/TKG/
+          - sudo chmod +x /var/TKG/k8s-1.sh
+          - sudo chmod +x /var/TKG/k8s-2.sh
+          - sudo chmod +x /var/TKG/k8s-3.sh
+          - sudo /var/TKG/k8s-1.sh
+          - sudo /var/TKG/k8s-2.sh
+          - sudo cp /var/TKG/daemon.json /etc/docker/daemon.json
+          - sudo cp /var/TKG/10-kubeadm.conf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+          - sudo systemctl daemon-reload
+          - sudo systemctl restart docker
+          - sudo systemctl enable docker
+          - sudo systemctl enable kubelet
+          - sudo systemctl restart apparmor
+          - sudo /var/TKG/k8s-3.sh
+          - sudo kubeadm init --config=/var/TKG/kubeadm-config.yaml
+          - sudo mkdir -p $HOME/.kube
+          - sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+          - 'sudo chown $(id -u):$(id -g) $HOME/.kube/config'
+          - sudo kubectl apply -f /var/TKG/calico.yaml
+          - sudo kubectl create -f /var/TKG/cluster-admin.yaml
+          - sudo chmod 777 /$HOME/.kube
+          - sudo chmod 777 /$HOME/.kube/config
+  Worker-Node:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu1804
+      flavor: medium
+      networks:
+        - network: '${resource["Tkg-Network"].id}'
+          assignment: static
+      remoteAccess:
+        username: ubuntu
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      cloudConfig: |
+        #cloud-config
+        # log all cloud-init process output (info & errors) to a logfile
+        output: {all: ">> /var/log/cloud-init-output.log"}
+        repo_update: true
+        repo_upgrade: all
+        apt_source:
+          - source: 'deb http://archive.ubuntu.com/ubuntu main universe multiverse restricted'
+        users:
+          - name: '${input.user}'
+            sudo: 'ALL=(ALL) NOPASSWD:ALL'
+            groups: sudo
+            shell: /bin/bash
+        runcmd:
+          - sudo swapoff -a
+          - sudo apt-get install sshpass -y
+          - sudo hostnamectl set-hostname tkg-Worker-01
+          - sudo mkdir /var/TKG/
+          - sudo git clone https://github.com/gnemkiy/testcreds.git
+          - su - neetcloud
+          - eval "$(ssh-agent -s)"
+          - sudo cd /home/neetcloud/.ssh/
+          - sudo cp /testcreds/sample/id_rsa /home/neetcloud/.ssh/.
+          - sudo chmod 400 /home/neetcloud/.ssh/id_rsa
+          - eval "$(ssh-agent -s)"
+          - ssh-add -k /home/neetcloud/.ssh/id_rsa
+          - ssh -o StrictHostKeyChecking=no -T git@github.com
+          - git clone git@github.com:kenshi08/tkg-sa.git
+          - sudo cp -r tkg/* /var/TKG/
+          - sudo chmod +x /var/TKG/k8s-1.sh
+          - sudo chmod +x /var/TKG/k8s-2.sh
+          - sudo chmod +x /var/TKG/k8s-3.sh
+          - sudo /var/TKG/k8s-1.sh
+          - sudo /var/TKG/k8s-2.sh
+          - sudo cp /var/TKG/daemon.json /etc/docker/daemon.json
+          - sudo cp /var/TKG/10-kubeadm.conf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+          - sudo systemctl daemon-reload
+          - sudo systemctl restart docker
+          - sudo systemctl enable docker
+          - sudo systemctl enable kubelet
+          - sudo systemctl restart apparmor
+          - sudo /var/TKG/k8s-3.sh
+          - 'CLUJOIN=$(sshpass -p ''templatepassword'' ssh ''templateusername''@''${resource.Master-Node.networks[0].address}'' -o "StrictHostKeyChecking=no" kubeadm token create --print-join-command)'
+          - sudo $CLUJOIN
+  Worker-Node-01:
+    type: Cloud.Machine
+    properties:
+      image: ubuntu1804
+      flavor: medium
+      networks:
+        - network: '${resource["Tkg-Network"].id}'
+          assignment: static
+      remoteAccess:
+        username: ubuntu
+        authentication: publicPrivateKey
+        sshKey: '${input.sshkey}'
+      cloudConfig: |
+        #cloud-config
+        # log all cloud-init process output (info & errors) to a logfile
+        output: {all: ">> /var/log/cloud-init-output.log"}
+        repo_update: true
+        repo_upgrade: all
+        apt_source:
+          - source: 'deb http://archive.ubuntu.com/ubuntu main universe multiverse restricted'
+        users:
+          - name: '${input.user}'
+            sudo: 'ALL=(ALL) NOPASSWD:ALL'
+            groups: sudo
+            shell: /bin/bash
+        runcmd:
+          - sudo swapoff -a
+          - sudo apt-get install sshpass -y
+          - sudo hostnamectl set-hostname tkg-worker-02
+          - sudo mkdir /var/TKG/
+          - sudo git clone https://github.com/gnemkiy/testcreds.git
+          - su - neetcloud
+          - eval "$(ssh-agent -s)"
+          - sudo cd /home/neetcloud/.ssh/
+          - sudo cp /testcreds/sample/id_rsa /home/neetcloud/.ssh/.
+          - sudo chmod 400 /home/neetcloud/.ssh/id_rsa
+          - eval "$(ssh-agent -s)"
+          - ssh-add -k /home/neetcloud/.ssh/id_rsa
+          - ssh -o StrictHostKeyChecking=no -T git@github.com
+          - git clone git@github.com:kenshi08/tkg-sa.git
+          - sudo cp -r tkg/* /var/TKG/
+          - sudo chmod +x /var/TKG/k8s-1.sh
+          - sudo chmod +x /var/TKG/k8s-2.sh
+          - sudo chmod +x /var/TKG/k8s-3.sh
+          - sudo /var/TKG/k8s-1.sh
+          - sudo /var/TKG/k8s-2.sh
+          - sudo cp /var/TKG/daemon.json /etc/docker/daemon.json
+          - sudo cp /var/TKG/10-kubeadm.conf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+          - sudo systemctl daemon-reload
+          - sudo systemctl restart docker
+          - sudo systemctl enable docker
+          - sudo systemctl enable kubelet
+          - sudo systemctl restart apparmor
+          - sudo /var/TKG/k8s-3.sh
+          - 'CLUJOIN=$(sshpass -p ''templatepassword'' ssh ''templateusername''@''${resource.Master-Node.networks[0].address}'' -o "StrictHostKeyChecking=no" kubeadm token create --print-join-command)'
+          - sudo $CLUJOIN
+  Tkg-Network:
+    type: Cloud.NSX.Network
+    properties:
+      networkType: existing
+      constraints:
+        - tag: 'function:lab'
