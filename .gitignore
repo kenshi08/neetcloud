@@ -4,3 +4,8 @@ third-party/terraform/vra8/.terraform/plugins/windows_amd64/lock.json
 third-party/terraform/vra8/terraform.tfvars
 third-party/terraform/vra8/terraform.tfstate.backup
 third-party/terraform/vra8/terraform.tfstate
+.DS_Store
+third-party/.DS_Store
+third-party/terraform/.DS_Store
+third-party/terraform/vra8/.DS_Store
+third-party/terraform/vra8/.terraform/plugins/darwin_amd64/lock.json
